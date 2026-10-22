@@ -39,6 +39,12 @@ updates:
     groups:
       pip:
         patterns: ["*"]
+    ignore:
+      # agent.py uses the mcp 1.x client API (streamablehttp_client, renamed in 2.x),
+      # and strands-agents caps the mcp versions it supports. Move to mcp 2.x by hand,
+      # together with the agent.py change.
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
 
   # Base image for the private web search agent image.
   - package-ecosystem: docker
