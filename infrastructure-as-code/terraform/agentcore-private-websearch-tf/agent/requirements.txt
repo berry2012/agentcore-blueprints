@@ -1,7 +1,9 @@
 strands-agents>=1.61.1
-# mcp 1.21.0 introduced ClientSession.get_server_capabilities(), required by
-# recent strands MCPClient. Cap below 2.0 (strands declares mcp<2.0.0).
-mcp>=2.3.0,<3.0.0
+# Stay on mcp 1.x. agent.py imports mcp.client.streamable_http.streamablehttp_client,
+# which mcp 2.x renamed to streamable_http_client. strands-agents also caps mcp
+# (<2.2 as of strands 1.62), so mcp>=2.2 cannot resolve. Moving to mcp 2.x needs a
+# code change in agent.py. 1.23.0 is the minimum current strands-agents requires.
+mcp>=1.23.0,<2.0.0
 # httpx is pulled in transitively by mcp's streamable-http client; pin it so the
 # SigV4 auth hook below targets a known request/response shape.
 httpx>=0.28.1
