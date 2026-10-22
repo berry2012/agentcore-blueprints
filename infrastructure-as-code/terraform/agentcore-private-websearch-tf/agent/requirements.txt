@@ -1,17 +1,17 @@
-strands-agents>=1.0.0
+strands-agents>=1.61.1
 # mcp 1.21.0 introduced ClientSession.get_server_capabilities(), required by
 # recent strands MCPClient. Cap below 2.0 (strands declares mcp<2.0.0).
-mcp>=1.21.0,<2.0.0
+mcp>=2.3.0,<3.0.0
 # httpx is pulled in transitively by mcp's streamable-http client; pin it so the
 # SigV4 auth hook below targets a known request/response shape.
-httpx>=0.27.0
-fastapi>=0.115.0
-uvicorn>=0.31.1
-pydantic>=2.0.0
+httpx>=0.28.1
+fastapi>=0.146.0
+uvicorn>=0.54.0
+pydantic>=2.14.1
 # boto3/botocore provide the SigV4 signer and the ambient runtime credentials.
-boto3>=1.35.0
+boto3>=1.43.114
 # AWS Distro for OpenTelemetry. With this installed, launching the agent via
 # `opentelemetry-instrument` auto-instruments Strands, the Bedrock model calls,
 # and the MCP/HTTP calls, and exports spans to CloudWatch (GenAI Observability).
 # 0.18.0+ delivers spans to the agent's own log group (unified span destination).
-aws-opentelemetry-distro>=0.18.0
+aws-opentelemetry-distro>=0.21.0
