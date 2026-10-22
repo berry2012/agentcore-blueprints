@@ -1,0 +1,40 @@
+# Terraform files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+tfplan
+crash.log
+crash.*.log
+
+# Secrets and keys
+.env
+.env.*
+*.pem
+*.key
+
+# Generated archives
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+.venv/

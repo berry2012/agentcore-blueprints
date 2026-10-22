@@ -1,0 +1,36 @@
+# Local agent/task artifacts (scan reports, plans)
+.agents/
+.kiro/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan
+*.tfplan
+crash.log
+crash.*.log
+
+# Secrets and keys
+.env
+.env.*
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+.venv/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

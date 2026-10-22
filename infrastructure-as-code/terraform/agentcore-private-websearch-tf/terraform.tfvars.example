@@ -1,0 +1,62 @@
+# Copy to terraform.tfvars and edit as needed. Every value below is optional —
+# the defaults produce a working private deployment on their own.
+
+region             = "us-east-1"
+name_prefix        = "techevents"
+agent_runtime_name = "TechEventsFinder"
+
+# ---------------------------------------------------------------------------
+# Model the agent reasons with. Must be enabled in this account/Region and
+# reachable over the bedrock-runtime VPC endpoint. Override to match your
+# entitlement.
+# ---------------------------------------------------------------------------
+bedrock_model_id = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+
+# ---------------------------------------------------------------------------
+# Private network. The VPC has NO internet or NAT gateway — all AWS access is
+# through VPC endpoints. Two subnets in different AZs by default.
+# ---------------------------------------------------------------------------
+vpc_cidr             = "10.20.0.0/16"
+private_subnet_cidrs = ["10.20.1.0/24", "10.20.2.0/24"]
+
+# AgentCore Runtime VPC mode runs only in specific AZs, selected by stable AZ ID
+# (names map to different IDs per account). Defaults are the us-east-1 supported
+# set; change for another Region per the AgentCore "Supported Availability Zones"
+# table.
+availability_zone_ids = ["use1-az1", "use1-az2", "use1-az4"]
+
+# ---------------------------------------------------------------------------
+# Domain governance (optional). Hidden from the agent and applied to every
+# request, so no prompt injection can widen them. include requires 1.2.0.
+# ---------------------------------------------------------------------------
+# domain_include = ["reinvent.awsevents.com", "devpost.com"]
+# domain_exclude = ["example-blocked.com"]
+
+connector_version = "1.2.0"
+
+# ---------------------------------------------------------------------------
+# Gateway MCP protocol options.
+#   - mcp_supported_versions defaults to the latest MCP revision (2025-11-25).
+#   - enable_semantic_search turns on context-based tool discovery. It is
+#     CREATION-ONLY: toggling it on an existing stack requires replacing the
+#     Gateway (terraform apply -replace=aws_bedrockagentcore_gateway.web_search).
+#   - enable_response_streaming streams tool responses over MCP.
+# ---------------------------------------------------------------------------
+mcp_supported_versions    = ["2025-11-25"]
+enable_semantic_search    = true
+enable_response_streaming = true
+
+# ---------------------------------------------------------------------------
+# Gateway observability. Application-log delivery is always configured.
+# Trace (span) delivery requires account-level CloudWatch Transaction Search:
+#   aws xray update-trace-segment-destination --destination CloudWatchLogs
+# Set enable_gateway_tracing = false if Transaction Search is not enabled.
+# ---------------------------------------------------------------------------
+enable_gateway_tracing = true
+enable_runtime_tracing = true
+log_retention_days     = 30
+
+tags = {
+  Project   = "agentcore-private-websearch"
+  ManagedBy = "terraform"
+}

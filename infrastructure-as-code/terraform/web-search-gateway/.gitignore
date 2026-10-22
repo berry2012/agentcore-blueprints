@@ -9,6 +9,12 @@ tfplan
 crash.log
 crash.*.log
 
+# Secrets and keys
+.env
+.env.*
+*.pem
+*.key
+
 # Generated archives
 *.zip
 
