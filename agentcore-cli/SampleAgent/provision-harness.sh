@@ -6,15 +6,6 @@
 #   - Memory (SEMANTIC + SUMMARIZATION)
 #   - Gateway with 2 MCP tool targets (EXA search + AWS MCP server)
 #
-# EVALUATION IS SEPARATE. This script only provisions the agent. To score agents,
-# use the dataset-driven BATCH evaluation workflow (see readme.md "Evaluation"):
-#   ./create-eval-evaluators.sh --profile <profile>     # one-time: 6 custom judges
-#   ./evaluate-agents.sh --profile <profile> --team <team>
-#
-# NOTE: Harness agents emit spans under scope 'strands.telemetry.tracer', which the
-# batch evaluators may not parse the same way as Runtime-agent spans. The Runtime
-# path (provision-runtime.sh) is the evaluation-friendly one.
-#
 # Usage:
 #   ./provision-harness.sh
 #   ./provision-harness.sh --profile my-aws-profile
@@ -557,10 +548,6 @@ fi
 echo ""
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
-# NOTE: This script no longer creates an online evaluation config. Evaluation is
-# handled separately by the dataset-driven BATCH workflow (see readme.md):
-#   ./create-eval-evaluators.sh --profile <profile>
-#   ./evaluate-agents.sh --profile <profile> --team <team>
 echo "=============================================="
 echo " Provisioning Complete!"
 echo "=============================================="
@@ -585,10 +572,6 @@ echo "  agentcore invoke --harness ${AGENT_NAME} --session-id \"\$(uuidgen)\" \"
 echo ""
 echo "Stream logs:"
 echo "  agentcore logs --harness ${AGENT_NAME}"
-echo ""
-echo "Evaluate (dataset-driven batch — see readme.md):"
-echo "  ./create-eval-evaluators.sh --profile <profile>   # one-time"
-echo "  ./evaluate-agents.sh --profile <profile> --team ${AGENT_NAME}"
 echo ""
 echo "Cleanup:"
 echo "  ${SCRIPT_DIR}/cleanup-harness.sh --name ${AGENT_NAME} --region ${REGION}${AWS_PROFILE:+ --profile ${AWS_PROFILE}}"
