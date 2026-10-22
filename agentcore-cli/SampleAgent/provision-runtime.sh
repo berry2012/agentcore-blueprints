@@ -7,13 +7,6 @@
 #   - Gateway with 2 MCP tool targets (managed Web Search + AWS Knowledge MCP)
 #   - UNIFIED_TRACES_DESTINATION_ENABLED=true
 #
-# Unlike Harness, Runtime agents produce spans compatible with the evaluators.
-#
-# EVALUATION IS SEPARATE. This script only provisions the agent. To score agents,
-# use the dataset-driven BATCH evaluation workflow (see readme.md "Evaluation"):
-#   ./create-eval-evaluators.sh --profile <profile>     # one-time: 6 custom judges
-#   ./evaluate-agents.sh --profile <profile> --team <team>
-#
 # Usage:
 #   ./provision-runtime.sh --name TeamAlpha --profile team-alpha --region us-east-1
 #   ./provision-runtime.sh --name TeamBeta --profile team-beta --region eu-west-1
@@ -770,10 +763,6 @@ fi
 echo ""
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
-# NOTE: This script no longer creates an online evaluation config. Evaluation is
-# handled separately by the dataset-driven BATCH workflow (see readme.md):
-#   ./create-eval-evaluators.sh --profile <profile>
-#   ./evaluate-agents.sh --profile <profile> --team <team>
 echo "=============================================="
 echo " Provisioning Complete!"
 echo "=============================================="
@@ -795,10 +784,6 @@ echo ""
 echo "Logs & Traces:"
 echo "  agentcore logs"
 echo "  agentcore traces list"
-echo ""
-echo "Evaluate (dataset-driven batch — see readme.md):"
-echo "  ./create-eval-evaluators.sh --profile <profile>   # one-time"
-echo "  ./evaluate-agents.sh --profile <profile> --team ${AGENT_NAME}"
 echo ""
 echo "Cleanup:"
 echo "  cd ${DEPLOY_DIR} && agentcore remove all -y && agentcore deploy -y"

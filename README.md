@@ -2,12 +2,13 @@
 
 [![Secret scan](https://github.com/berry2012/agentcore-blueprints/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/secret-scan.yml) [![IaC checks](https://github.com/berry2012/agentcore-blueprints/actions/workflows/iac.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/iac.yml) [![CodeQL](https://github.com/berry2012/agentcore-blueprints/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/codeql.yml)
 
-A public catalog of sample solutions, reference architectures, and reusable artifacts
-for [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/). Each
-blueprint is a self-contained, deployable example you can stand up in your own AWS
-account, read end to end, and adapt to your own use case. The focus is on patterns that
-are small enough to understand in one sitting but complete enough to run: infrastructure
-as code, least-privilege IAM, a way to verify the deployment, and a way to tear it down.
+A public collection of sample solutions, reference architectures, and reusable artifacts
+for [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/).
+
+Blueprints come in whatever form fits the pattern best: infrastructure as code,
+AgentCore CLI and AWS CLI scripts, agent code, and more over time. Each one is
+self-contained and runnable in your own AWS account, with a way to verify it works and a
+way to tear it down.
 
 ## What is Amazon Bedrock AgentCore
 
@@ -20,69 +21,59 @@ Interpreter, and Browser. It works with any agent framework and any model. See t
 
 ## Blueprints
 
-| Blueprint | Category | Description | Stack/Tools |
-| --- | --- | --- | --- |
-| [web-search-gateway](infrastructure-as-code/terraform/web-search-gateway/) | Infrastructure as code / Gateway | Provisions an AgentCore Gateway with the AWS-managed Web Search connector in a single `terraform apply`. Uses `AWS_IAM` (SigV4) inbound auth, a least-privilege caller role, a separate Gateway service role for outbound auth, and optional target-level domain allow/deny lists. Includes a Python MCP client that proves the tool returns live results without deploying an agent. | Terraform >= 1.6, AWS provider ~> 6.69, AWS CLI, Python 3.11+ with boto3/botocore |
-| [agentcore-private-websearch-tf](infrastructure-as-code/terraform/agentcore-private-websearch-tf/) | Infrastructure as code / Runtime + Gateway | Deploys a Strands agent (TechEventsFinder) to AgentCore Runtime inside a VPC with no internet or NAT gateway. The agent reaches Bedrock and the AgentCore Gateway Web Search tool only through AWS PrivateLink interface endpoints, with endpoint policies scoped to the runtime role and this Gateway. Includes OpenTelemetry tracing to CloudWatch and an invoke script. | Terraform >= 1.6, AWS provider ~> 6.69, Docker, AWS CLI, Python with boto3 |
+### AgentCore CLI and AWS CLI
 
-More blueprints are on the way. Watch this table as they land.
+Scripted, end-to-end deployments driven by the [AgentCore CLI](https://github.com/aws/agentcore-cli)
+and the AWS CLI. A good starting point if you want an agent running quickly.
+
+| Blueprint | What it shows | AgentCore features |
+| --- | --- | --- |
+| [SampleAgent](agentcore-cli/SampleAgent/) | Deploys a Strands agent to AgentCore Runtime or AgentCore Harness with one script, then wires in Memory and a Gateway with MCP tool targets. Includes cleanup scripts for both paths. | Runtime, Harness, Memory, Gateway, Observability |
+
+### Infrastructure as code
+
+Repeatable deployments you can review, version, and plug into a pipeline.
+
+| Blueprint | What it shows | AgentCore features | Tooling |
+| --- | --- | --- | --- |
+| [web-search-gateway](infrastructure-as-code/terraform/web-search-gateway/) | A Gateway exposing the AWS-managed Web Search tool over MCP with SigV4 (`AWS_IAM`) inbound auth and least-privilege roles. A Python MCP client proves it works without deploying an agent. | Gateway, Web Search | Terraform |
+| [agentcore-private-websearch-tf](infrastructure-as-code/terraform/agentcore-private-websearch-tf/) | A Strands agent on Runtime inside a VPC with no internet or NAT gateway. It reaches Bedrock and the Web Search Gateway only over AWS PrivateLink, with endpoint policies scoped to the runtime role. | Runtime, Gateway, Web Search, Observability | Terraform, Docker |
+
+More blueprints are on the way.
 
 ## Getting started
 
-General prerequisites:
+You'll need:
 
 - An AWS account with access to Amazon Bedrock AgentCore in a
   [supported Region](https://docs.aws.amazon.com/bedrock-agentcore/). Some features,
-  such as the Web Search connector, are available in a subset of Regions; each blueprint
-  README lists what it needs.
-- AWS CLI installed and configured with credentials that can create the resources the
-  blueprint provisions (typically IAM roles and AgentCore resources).
-- Per-blueprint tooling, listed in each blueprint's README. For Terraform blueprints
-  this means Terraform >= 1.6 and, where a test client is included, Python 3 with boto3.
+  such as Web Search or Harness, are available in a subset of Regions.
+- The AWS CLI, configured with credentials that can create the resources the blueprint
+  provisions.
+- The tooling listed in the blueprint's own README (for example the AgentCore CLI,
+  Terraform, Docker, or Python).
 
-To deploy a blueprint:
+Then clone the repo and open the blueprint you want:
 
 ```bash
 git clone https://github.com/berry2012/agentcore-blueprints.git
-cd agentcore-blueprints/infrastructure-as-code/terraform/web-search-gateway
+cd agentcore-blueprints/<path-to-blueprint>
 ```
 
-Then follow that folder's README. Each blueprint documents its own deploy, verify, and
-cleanup steps, and most ship a `deploy.sh` and `destroy.sh` to make them one command each.
+Each blueprint's README walks through deploy, verify, and cleanup.
 
 ## Contributing
 
-Contributions are welcome. Open a pull request with your blueprint in its own folder,
-for example `infrastructure-as-code/<tool>/<blueprint-name>/` for Terraform, CDK, or
-CloudFormation samples, and add a row to the Blueprints table above. Each blueprint must
-be self-contained and include a `README.md` covering:
-
-- Overview of what it deploys and why
-- Architecture diagram, if available
-- Prerequisites (tooling, versions, Regions, IAM permissions)
-- Deploy steps
-- Test or verify steps
-- Cleanup or destroy steps
-- Cost notes
-
-Never commit secrets, credentials, `terraform.tfstate`, or `.terraform/` directories.
-Provide `*.example` files for anything environment-specific (for example
-`terraform.tfvars.example`, `backend.tf.example`) and ship a `.gitignore` in the
-blueprint folder.
-
-Every pull request and push to `main` runs Gitleaks secret scanning. The blueprint folders
-that changed also get a Trivy IaC security scan, which fails on HIGH or CRITICAL findings,
-plus `terraform fmt`, `terraform validate`, and TFLint; Python changes run CodeQL. To accept
-a finding, suppress it with a reason: a `#trivy:ignore:<ID>` comment plus a reason above the
-Terraform resource, or an entry with a `statement` in the blueprint's `.trivyignore.yaml`.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how blueprints are
+organized, what each one needs, and the checks that run on pull requests.
 
 ## Security
 
 These blueprints are reference samples, not production-ready deployments. Before using
-them beyond a proof of concept, review the IAM policies they create, confirm Region and
-service availability, and check the pricing of every service involved. Many blueprints
-create resources that incur charges while they exist or per invocation; run the
-documented cleanup step when you are done.
+them beyond a proof of concept, review the IAM policies and auth settings they create,
+confirm Region and service availability, and check the pricing of every service involved.
+Most blueprints create resources that incur charges while they exist or per invocation,
+so run the documented cleanup step when you are done.
 
 ## License
 

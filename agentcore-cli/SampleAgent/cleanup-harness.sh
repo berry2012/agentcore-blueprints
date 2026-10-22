@@ -7,10 +7,6 @@
 #   3. Harness agent (runtime + CDK stack)
 #   4. Local deploy directory
 #
-# NOTE: Evaluation resources (custom evaluators, batch jobs) are shared across agents
-# in an account and are NOT created by provisioning, so this per-agent cleanup does
-# not touch them. To remove evaluators, run: ./cleanup-evaluators.sh --profile <profile>
-#
 # Usage:
 #   ./cleanup-harness.sh
 #   ./cleanup-harness.sh --name HackathonAgent --region us-east-1
