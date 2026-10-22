@@ -23,43 +23,7 @@ Interpreter, and Browser. It works with any agent framework and any model. See t
 | [web-search-gateway](infrastructure-as-code/terraform/web-search-gateway/) | Infrastructure as code / Gateway | Provisions an AgentCore Gateway with the AWS-managed Web Search connector in a single `terraform apply`. Uses `AWS_IAM` (SigV4) inbound auth, a least-privilege caller role, a separate Gateway service role for outbound auth, and optional target-level domain allow/deny lists. Includes a Python MCP client that proves the tool returns live results without deploying an agent. | Terraform >= 1.6, AWS provider ~> 6.69, AWS CLI, Python 3.11+ with boto3/botocore |
 | [agentcore-private-websearch-tf](infrastructure-as-code/terraform/agentcore-private-websearch-tf/) | Infrastructure as code / Runtime + Gateway | Deploys a Strands agent (TechEventsFinder) to AgentCore Runtime inside a VPC with no internet or NAT gateway. The agent reaches Bedrock and the AgentCore Gateway Web Search tool only through AWS PrivateLink interface endpoints, with endpoint policies scoped to the runtime role and this Gateway. Includes OpenTelemetry tracing to CloudWatch and an invoke script. | Terraform >= 1.6, AWS provider ~> 6.69, Docker, AWS CLI, Python with boto3 |
 
-More blueprints are on the way. Watch this table or the folders below as they land.
-
-## Repository structure
-
-```text
-agentcore-blueprints/
-├── LICENSE
-├── README.md
-└── infrastructure-as-code/
-    └── terraform/
-        ├── web-search-gateway/
-        │   ├── README.md
-        │   ├── architecture.png
-        │   ├── *.tf
-        │   ├── deploy.sh
-        │   ├── destroy.sh
-        │   └── scripts/
-        └── agentcore-private-websearch-tf/
-            ├── README.md
-            ├── images/
-            ├── *.tf
-            ├── agent/
-            ├── deploy.sh
-            ├── destroy.sh
-            └── scripts/
-```
-
-Convention for infrastructure blueprints:
-
-```text
-infrastructure-as-code/<tool>/<blueprint-name>/
-```
-
-`<tool>` is `terraform` today; `cdk` and `cloudformation` are reserved for future
-blueprints. Other top-level categories (for example `agents`, `gateways`, `memory`,
-`identity`, `observability`, `notebooks`) may be added as blueprints land. Directories are
-created only when a blueprint ships in them.
+More blueprints are on the way. Watch this table as they land.
 
 ## Getting started
 
@@ -86,9 +50,10 @@ cleanup steps, and most ship a `deploy.sh` and `destroy.sh` to make them one com
 
 ## Contributing
 
-Contributions are welcome. Open a pull request with your blueprint in its own folder
-following the structure above. Each blueprint must be self-contained and include a
-`README.md` covering:
+Contributions are welcome. Open a pull request with your blueprint in its own folder,
+for example `infrastructure-as-code/<tool>/<blueprint-name>/` for Terraform, CDK, or
+CloudFormation samples, and add a row to the Blueprints table above. Each blueprint must
+be self-contained and include a `README.md` covering:
 
 - Overview of what it deploys and why
 - Architecture diagram, if available
