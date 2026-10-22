@@ -42,6 +42,7 @@ agentcore-blueprints/
         │   └── scripts/
         └── agentcore-private-websearch-tf/
             ├── README.md
+            ├── images/
             ├── *.tf
             ├── agent/
             ├── deploy.sh
