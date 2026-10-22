@@ -3,11 +3,11 @@ strands-agents>=1.61.1
 # which mcp 2.x renamed to streamable_http_client. strands-agents also caps mcp
 # (<2.2 as of strands 1.62), so mcp>=2.2 cannot resolve. Moving to mcp 2.x needs a
 # code change in agent.py. 1.23.0 is the minimum current strands-agents requires.
-mcp>=1.23.0,<2.0.0
+mcp>=1.30.0,<2.0.0
 # httpx is pulled in transitively by mcp's streamable-http client; pin it so the
 # SigV4 auth hook below targets a known request/response shape.
 httpx>=0.28.1
-fastapi>=0.146.0
+fastapi>=0.148.0
 uvicorn>=0.54.0
 pydantic>=2.14.1
 # boto3/botocore provide the SigV4 signer and the ambient runtime credentials.
