@@ -30,36 +30,7 @@ to be `"*"`.
 
 ## Architecture Diagram
 
-```
-  operator / CI                         Your AWS account
-  ─────────────                         ────────────────────────────────────────────────
-                                        ┌──────────────────────── VPC (no IGW, no NAT) ───┐
-  InvokeAgentRuntime   ┌─────────────┐  │  private subnets (2 AZs)                         │
-  (SigV4) ───────────▶ │  AgentCore  │  │  ┌────────────────────┐                         │
-                       │  Runtime    │──┼─▶│ TechEventsFinder    │                         │
-                       │  (data      │  │  │ agent (ARM64 image) │                         │
-                       │   plane)    │  │  │  ENIs, no public IP │                         │
-                       └─────────────┘  │  └─────────┬──────────┘                          │
-                                        │            │ 443 only, to the endpoint SG        │
-                                        │   ┌────────┴──────────────────────────────────┐  │
-                                        │   │ interface VPC endpoints (AWS PrivateLink)  │  │
-                                        │   │  • bedrock-agentcore.gateway  ──┐          │  │
-                                        │   │  • bedrock-runtime  ──┐         │          │  │
-                                        │   │  • ecr.api / ecr.dkr  │         │          │  │
-                                        │   │  • logs               │         │          │  │
-                                        │   │  • bedrock-agentcore  │         │          │  │
-                                        │   └───────────────────────┼─────────┼──────────┘  │
-                                        │   S3 gateway endpoint ◀────┘ (ECR    │             │
-                                        │   (image-layer pulls)               │             │
-                                        └─────────────────────────────────────┼─────────────┘
-                                                                               ▼
-                                                               ┌───────────────────────────┐
-                                                               │ AgentCore Gateway (MCP,    │
-                                                               │ AWS_IAM inbound)           │
-                                                               │   └─ web-search target ────┼──▶ AWS-managed
-                                                               └───────────────────────────┘    Web Search
-                                                                                                 (served in AWS)
-```
+![Architecture](images/agentcore-private-websearch-architecture.png)
 
 **Reasoning path (private):** the agent calls Bedrock `InvokeModel` through the
 `bedrock-runtime` interface endpoint. That endpoint's policy allows only
