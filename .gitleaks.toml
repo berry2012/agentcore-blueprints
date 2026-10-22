@@ -1,0 +1,44 @@
+# Gitleaks configuration for agentcore-blueprints.
+#
+# Extends the default Gitleaks ruleset with two custom rules that catch real
+# 12-digit AWS account IDs, which are not secrets on their own but should not
+# appear in public samples:
+#   - aws-account-id-in-arn:     an account ID inside an ARN (arn:aws:<svc>:<region>:<acct>:...)
+#   - aws-account-id-assignment: a hard-coded `account_id = "<12 digits>"` style assignment
+#
+# Keep allowlists precise: allow exact placeholder values (and the files that
+# own them), never broad paths or patterns. Samples should use 123456789012,
+# the AWS documentation placeholder account.
+
+title = "agentcore-blueprints gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aws-account-id-in-arn"
+description = "AWS account ID embedded in an ARN"
+regex = '''arn:aws[a-z-]*:[^:\s"']*:[^:\s"']*:(\d{12}):'''
+secretGroup = 1
+keywords = ["arn:aws"]
+  [[rules.allowlists]]
+  description = "AWS documentation placeholder account"
+  regexes = ['''^123456789012$''']
+
+[[rules]]
+id = "aws-account-id-assignment"
+description = "Hard-coded 12-digit AWS account ID assignment"
+regex = '''(?i)\baccount[_-]?id\b["']?\s*[:=]\s*["'](\d{12})["']'''
+secretGroup = 1
+keywords = ["account_id", "account-id", "accountid"]
+  [[rules.allowlists]]
+  description = "AWS documentation placeholder account"
+  regexes = ['''^123456789012$''']
+
+# The blueprint self-tests sign requests with obviously fake credentials.
+# Both the file path AND the exact fake value must match to be allowed.
+[[allowlists]]
+description = "Intentional fake credentials in blueprint self-tests"
+condition = "AND"
+paths = ['''^infrastructure-as-code/[^/]+/[^/]+/scripts/selftest\.py$''']
+regexes = ['''^(AKIDEXAMPLENOTREAL|secretnotreal|tokennotreal)$''']

@@ -1,0 +1,233 @@
+# IaC checks for the blueprint folders a change touches.
+#
+# The `detect` job lists the changed folders under infrastructure-as-code/
+# (.github/scripts/changed-blueprints.sh). Every other job runs one matrix entry
+# per changed folder and is skipped when nothing relevant changed. Manual runs
+# (workflow_dispatch) check every blueprint.
+#
+# Security scanner: Trivy `config`, which blocks on HIGH/CRITICAL only.
+#   Open-source Checkov reports severity only when it can fetch policy metadata
+#   from Prisma Cloud (--bc-api-key). Without a key every severity is null, so
+#   it cannot gate on HIGH. Trivy ships severities offline and covers
+#   Terraform, CloudFormation, and Dockerfiles. Each blueprint is scanned twice:
+#   a full report (all severities) uploaded as SARIF to the Security tab, then
+#   a HIGH/CRITICAL gate that fails the job.
+#
+# Trivy is installed from its release tarball with a pinned sha256, not via
+# aquasecurity/trivy-action or setup-trivy: both had their tags hijacked in
+# March 2026 (GHSA-69fq-xp46-6x23). Dependabot does not bump TRIVY_VERSION;
+# update it and TRIVY_SHA256 by hand from the release's checksums.txt.
+#
+# Suppressing a finding (always with a written reason):
+#   - Terraform: on the line above the resource,
+#       # Reason: <why this is acceptable for the sample>
+#       #trivy:ignore:AWS-0000
+#   - Anything else (e.g. Dockerfiles): an entry with a `statement` in
+#     <blueprint>/.trivyignore.yaml, with `paths` relative to the blueprint.
+name: IaC checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Superseded PR runs are cancelled. Push and dispatch runs get a unique group
+# (run_id): each push checks only the folders changed in before..sha, and
+# GitHub would otherwise replace a pending run in a shared group, skipping them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  detect:
+    name: Detect changed blueprints
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      blueprints: ${{ steps.changed.outputs.blueprints }}
+      terraform: ${{ steps.changed.outputs.terraform }}
+      cloudformation: ${{ steps.changed.outputs.cloudformation }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: List changed blueprint folders
+        id: changed
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT" in
+            pull_request) .github/scripts/changed-blueprints.sh "$PR_BASE" "$PR_HEAD" ;;
+            push)         .github/scripts/changed-blueprints.sh "$BEFORE" "$SHA" ;;
+            *)            .github/scripts/changed-blueprints.sh --all ;;
+          esac
+
+  trivy:
+    name: Trivy (${{ matrix.dir }})
+    needs: detect
+    if: needs.detect.outputs.blueprints != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload Trivy SARIF to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect.outputs.blueprints) }}
+    env:
+      TRIVY_VERSION: 0.76.1
+      TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
+      DIR: ${{ matrix.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install trivy
+        run: |
+          set -euo pipefail
+          tarball="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -sSfL -o "/tmp/${tarball}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${tarball}"
+          echo "${TRIVY_SHA256}  /tmp/${tarball}" | sha256sum -c -
+          tar -xzf "/tmp/${tarball}" -C /tmp trivy
+          sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
+          trivy --version
+
+      - name: Locate suppressions
+        id: ignore
+        run: |
+          set -euo pipefail
+          if [[ -f "$DIR/.trivyignore.yaml" ]]; then
+            echo "Using suppressions from $DIR/.trivyignore.yaml"
+            echo "file=$DIR/.trivyignore.yaml" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report all findings (SARIF)
+        env:
+          IGNOREFILE: ${{ steps.ignore.outputs.file }}
+        run: |
+          set -euo pipefail
+          trivy config --format sarif --output trivy.sarif --exit-code 0 \
+            ${IGNOREFILE:+--ignorefile "$IGNOREFILE"} "$DIR"
+
+      - name: Upload SARIF to code scanning
+        # Fork PRs get a read-only token and cannot upload security events.
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-${{ matrix.dir }}
+
+      - name: Gate on HIGH/CRITICAL
+        if: ${{ !cancelled() }}
+        env:
+          IGNOREFILE: ${{ steps.ignore.outputs.file }}
+        run: |
+          set -euo pipefail
+          trivy config --severity HIGH,CRITICAL --exit-code 1 --format table \
+            ${IGNOREFILE:+--ignorefile "$IGNOREFILE"} "$DIR"
+
+  terraform:
+    name: Terraform (${{ matrix.dir }})
+    needs: detect
+    if: needs.detect.outputs.terraform != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect.outputs.terraform) }}
+    env:
+      DIR: ${{ matrix.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.6
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        working-directory: ${{ matrix.dir }}
+        run: terraform fmt -check -recursive -diff
+
+      - name: terraform init
+        working-directory: ${{ matrix.dir }}
+        run: terraform init -backend=false -input=false -no-color
+
+      - name: terraform validate
+        working-directory: ${{ matrix.dir }}
+        run: terraform validate -no-color
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v0.64.0
+
+      - name: TFLint init
+        env:
+          # Avoids GitHub API rate limits when downloading the AWS ruleset.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+
+      - name: TFLint
+        run: tflint --config "$GITHUB_WORKSPACE/.tflint.hcl" --chdir "$DIR" --format compact
+
+  cfn-lint:
+    # Trivy (above) covers CloudFormation security findings; cfn-lint checks
+    # template correctness. cfn-guard is deferred until there are rules to run.
+    name: cfn-lint (${{ matrix.dir }})
+    needs: detect
+    if: needs.detect.outputs.cloudformation != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect.outputs.cloudformation) }}
+    env:
+      DIR: ${{ matrix.dir }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install cfn-lint
+        run: python -m pip install cfn-lint==1.58.0
+
+      - name: cfn-lint
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=("$DIR"/**/*.{yaml,yml,json,template})
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "::notice::No CloudFormation templates found in $DIR"
+            exit 0
+          fi
+          cfn-lint -- "${files[@]}"
