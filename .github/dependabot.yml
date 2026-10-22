@@ -1,0 +1,52 @@
+# Dependabot version updates. Each ecosystem opens at most one grouped PR a week.
+#
+# Not covered here: the Trivy and Gitleaks binaries installed in
+# .github/workflows/*.yml (TRIVY_VERSION / GITLEAKS_VERSION plus their sha256),
+# and the Terraform / TFLint / cfn-lint versions pinned in iac.yml. Bump those
+# by hand.
+version: 2
+updates:
+  # Action SHA pins and their `# vX.Y.Z` comments in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Provider constraints and lock files in every Terraform blueprint.
+  - package-ecosystem: terraform
+    directories:
+      - /infrastructure-as-code/terraform/*
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      terraform:
+        patterns: ["*"]
+
+  # Python packages for the private web search agent image.
+  - package-ecosystem: pip
+    directory: /infrastructure-as-code/terraform/agentcore-private-websearch-tf/agent
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      pip:
+        patterns: ["*"]
+
+  # Base image for the private web search agent image.
+  - package-ecosystem: docker
+    directory: /infrastructure-as-code/terraform/agentcore-private-websearch-tf/agent
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      docker:
+        patterns: ["*"]

@@ -1,5 +1,7 @@
 # AgentCore Blueprints
 
+[![Secret scan](https://github.com/berry2012/agentcore-blueprints/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/secret-scan.yml) [![IaC checks](https://github.com/berry2012/agentcore-blueprints/actions/workflows/iac.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/iac.yml) [![CodeQL](https://github.com/berry2012/agentcore-blueprints/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/berry2012/agentcore-blueprints/actions/workflows/codeql.yml)
+
 A public catalog of sample solutions, reference architectures, and reusable artifacts
 for [Amazon Bedrock AgentCore](https://aws.amazon.com/bedrock/agentcore/). Each
 blueprint is a self-contained, deployable example you can stand up in your own AWS
@@ -67,6 +69,12 @@ Never commit secrets, credentials, `terraform.tfstate`, or `.terraform/` directo
 Provide `*.example` files for anything environment-specific (for example
 `terraform.tfvars.example`, `backend.tf.example`) and ship a `.gitignore` in the
 blueprint folder.
+
+Every pull request and push to `main` runs Gitleaks secret scanning. The blueprint folders
+that changed also get a Trivy IaC security scan, which fails on HIGH or CRITICAL findings,
+plus `terraform fmt`, `terraform validate`, and TFLint; Python changes run CodeQL. To accept
+a finding, suppress it with a reason: a `#trivy:ignore:<ID>` comment plus a reason above the
+Terraform resource, or an entry with a `statement` in the blueprint's `.trivyignore.yaml`.
 
 ## Security
 
