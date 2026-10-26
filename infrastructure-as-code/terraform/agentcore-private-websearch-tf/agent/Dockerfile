@@ -1,5 +1,5 @@
 # AgentCore Runtime requires linux/arm64 (Graviton). x86 images will not start.
-FROM --platform=linux/arm64 python:3.11-slim
+FROM --platform=linux/arm64 python:3.12-slim
 
 WORKDIR /app
 
